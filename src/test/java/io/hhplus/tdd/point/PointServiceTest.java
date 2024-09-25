@@ -10,6 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,7 +35,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 포인트 조회 로직 확인")
-    public void testGetUserPoint_ValidUser() {
+    public void ValidUserTest() {
 
         long userId = 1L;
 
@@ -49,7 +51,34 @@ class PointServiceTest {
         verify(userPointTable).selectById(userId);
     }
 
-   
+    /**
+     * 특정 유저의 포인트 충전/이용 내역 조회 기능 테스트
+     */
+    @Test
+    @DisplayName("특정 유저의 포인트 충전/이용 내역 조회 로직 확인")
+    public void ValidUserPointTest() {
+        
+        long userId = 1L;
+
+        // given
+        List<PointHistory> mockHistory = List.of(
+                new PointHistory(1L, userId, 200, TransactionType.CHARGE, System.currentTimeMillis()),
+                new PointHistory(2L, userId, 100, TransactionType.USE, System.currentTimeMillis())
+        );
+
+        when(pointHistoryTable.selectAllByUserId(userId))
+                .thenReturn(mockHistory);
+
+        // when
+        List<PointHistory> result = pointService.getPointHistory(userId);
+
+        // then
+        assertEquals(2, result.size());
+        assertEquals(200, result.get(0).amount());
+        assertEquals(100, result.get(1).amount());
+
+        verify(pointHistoryTable).selectAllByUserId(userId);
+    }
 
 
 }
