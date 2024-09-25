@@ -88,7 +88,7 @@ class PointServiceTest {
      */
     @Test
     @DisplayName("특정 유저의 포인트를 충전하는 테스트")
-    public void UserPointUseTest() {
+    public void UserPointChargeTest() {
 
         // given
         long userId = 1L;
@@ -110,5 +110,32 @@ class PointServiceTest {
 
     }
 
+    /**
+     * 특정 유저의 포인트를 사용하는 기능을 작성하는 테스트
+     */
+    @Test
+    @DisplayName("특정 유저의 포인트를 사용하는 기능 테스트")
+    public void UserPointUseTest() {
 
+        // given
+        long userId = 1L;
+        long useAmount = 200L;
+
+        UserPoint currentUserPoint = new UserPoint(userId, 500, System.currentTimeMillis());
+        UserPoint updatedUserPoint = new UserPoint(userId, 300, System.currentTimeMillis());
+
+        when(userPointTable.selectById(userId))
+                .thenReturn(currentUserPoint);
+
+        when(userPointTable.insertOrUpdate(userId, 300L))
+                .thenReturn(updatedUserPoint);
+
+        // when
+        UserPoint result = pointService.usePoint(userId, useAmount);
+
+        // then
+        assertEquals(300, result.point());
+
+        verify(userPointTable).insertOrUpdate(userId, 300L);
+    }
 }
