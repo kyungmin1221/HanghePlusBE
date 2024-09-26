@@ -13,6 +13,7 @@ public class PointServiceImpl implements PointService{
 
     private final UserPointTable userPointTable;
     private final PointHistoryTable pointHistoryTable;
+    private final long MAX_COUNT = 10_000L;
 
     /**
      * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
@@ -35,8 +36,15 @@ public class PointServiceImpl implements PointService{
      */
     @Override
     public UserPoint chargePoint(long userId, long amount) {
-        UserPoint updateUserPoint = userPointTable.insertOrUpdate(userId, amount);
-        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE,  System.currentTimeMillis());
+        UserPoint currentPoint = userPointTable.selectById(userId);
+
+        // 최대 잔고 검증
+        if (currentPoint.point() + amount > MAX_BALANCE) {
+            throw new IllegalArgumentException("최대 잔고를 초과할 수 없습니다.");
+        }
+
+        UserPoint updateUserPoint = userPointTable.insertOrUpdate(userId, currentPoint.point() + amount);
+        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
 
         return updateUserPoint;
     }
