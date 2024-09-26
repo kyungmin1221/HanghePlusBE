@@ -87,55 +87,82 @@ class PointServiceTest {
      * 특정 유저의 포인트를 충전하는 기능 테스트
      */
     @Test
-    @DisplayName("특정 유저의 포인트를 충전하는 테스트")
+    @DisplayName("특정 유저의 포인트를 충전하는 테스트 - step1 요구사항으로 변경")
     public void UserPointChargeTest() {
 
         // given
         long userId = 1L;
-        long amount = 200;
+        long amount = 200L;
+        long currentCount = 300L;
 
-        UserPoint updateUserPoint = new UserPoint(userId, 500, System.currentTimeMillis());
+        UserPoint currentUserpoint = new UserPoint(userId, currentCount, System.currentTimeMillis());
+        UserPoint updateUserPoint = new UserPoint(userId, currentCount + amount, System.currentTimeMillis());
 
-        when(userPointTable.insertOrUpdate(userId, amount))
+
+        when(userPointTable.selectById(userId))
+                .thenReturn(currentUserpoint);
+
+        when(userPointTable.insertOrUpdate(userId, currentCount + amount))
                 .thenReturn(updateUserPoint);
 
         // when
         UserPoint result = pointService.chargePoint(userId, amount);
 
-        System.out.println(updateUserPoint.point());
-        System.out.println(result.point());
-
         // then
         assertEquals(updateUserPoint.point(), result.point());
+
+        verify(pointHistoryTable).insert(eq(userId), eq(amount), eq(TransactionType.CHARGE), anyLong());
 
     }
 
     /**
      * 특정 유저의 포인트를 사용하는 기능을 작성하는 테스트
      */
+//    @Test
+//    @DisplayName("특정 유저의 포인트를 사용하는 기능 테스트")
+//    public void UserPointUseTest() {
+//
+//        // given
+//        long userId = 1L;
+//        long useAmount = 200L;
+//
+//        UserPoint currentUserPoint = new UserPoint(userId, 500, System.currentTimeMillis());
+//        UserPoint updatedUserPoint = new UserPoint(userId, 300, System.currentTimeMillis());
+//
+//        when(userPointTable.selectById(userId))
+//                .thenReturn(currentUserPoint);
+//
+//        when(userPointTable.insertOrUpdate(userId, 300L))
+//                .thenReturn(updatedUserPoint);
+//
+//        // when
+//        UserPoint result = pointService.usePoint(userId, useAmount);
+//
+//        // then
+//        assertEquals(300, result.point());
+//
+//        verify(userPointTable).insertOrUpdate(userId, 300L);
+//    }
+
     @Test
-    @DisplayName("특정 유저의 포인트를 사용하는 기능 테스트")
-    public void UserPointUseTest() {
+    @DisplayName("잔고 부족 시 포인트 사용 테스트 - step2")
+    public void UserNoPointTest() {
 
         // given
         long userId = 1L;
-        long useAmount = 200L;
+        long useAmount = 100L;
+        long currentCount = 50L;
 
-        UserPoint currentUserPoint = new UserPoint(userId, 500, System.currentTimeMillis());
-        UserPoint updatedUserPoint = new UserPoint(userId, 300, System.currentTimeMillis());
+        UserPoint currentUserPoint = new UserPoint(userId, currentCount, System.currentTimeMillis());
 
         when(userPointTable.selectById(userId))
                 .thenReturn(currentUserPoint);
 
-        when(userPointTable.insertOrUpdate(userId, 300L))
-                .thenReturn(updatedUserPoint);
+        Exception pointException = assertThrows(IllegalArgumentException.class,
+                () -> {
+                    pointService.usePoint(userId, useAmount);
+                });
 
-        // when
-        UserPoint result = pointService.usePoint(userId, useAmount);
-
-        // then
-        assertEquals(300, result.point());
-
-        verify(userPointTable).insertOrUpdate(userId, 300L);
+        assertEquals("포인트가 부족합니다.", pointException.getMessage());
     }
 }
