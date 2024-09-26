@@ -39,7 +39,7 @@ public class PointServiceImpl implements PointService{
         UserPoint currentPoint = userPointTable.selectById(userId);
 
         // 최대 잔고 검증
-        if (currentPoint.point() + amount > MAX_BALANCE) {
+        if (currentPoint.point() + amount > MAX_COUNT) {
             throw new IllegalArgumentException("최대 잔고를 초과할 수 없습니다.");
         }
 
@@ -55,7 +55,10 @@ public class PointServiceImpl implements PointService{
      */
     @Override
     public UserPoint usePoint(long userId, long amount) {
+
         UserPoint currentPoint = userPointTable.selectById(userId);
+
+        // 잔고 부족 검증
         if (currentPoint.point() < amount) {
             throw new IllegalArgumentException("포인트가 부족합니다.");
         }
@@ -63,6 +66,7 @@ public class PointServiceImpl implements PointService{
         Long finalPoint = currentPoint.point() - amount;
         UserPoint updateUserPoint = userPointTable.insertOrUpdate(userId, finalPoint);
         pointHistoryTable.insert(userId, finalPoint, TransactionType.USE, System.currentTimeMillis());
+
         return updateUserPoint;
     }
 
