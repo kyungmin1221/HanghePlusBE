@@ -61,7 +61,7 @@ public class PointServiceConcurrencyTest {
 
         // ThreadPool 을 관리해주는 인터페이스 , 고정된 크기의 스레드풀을 생성하여 동시에 여러 작업이 가능하도록 설정
         ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
-        
+
         // 다수의 스레드가 모두 작업을 완료할 때까지 기다릴 수 있는 동기화 도구
         // latch : 스레드들이 작업을 완료한 후 실행을 계속해서 할 수 있도록 제어하는 역할을 해준다.
         // numberOfThreads 값을 받아 스레드 수 만큼 카운트다운 수행
