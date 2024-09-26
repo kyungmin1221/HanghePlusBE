@@ -41,17 +41,16 @@ public class PointServiceConcurrencyTest {
         int numberOfThreads = 10;
         long chargeAmount = 100L;
 
-        // 현재 유저 포인트 상태를 유지할 변수
+        // 유저의 현재 포인트 잔액 저장
+        // AtomicLong => thread-safe 하게 값을 변경할 수 있는 객체
         AtomicLong currentBalance = new AtomicLong(initialBalance);
 
-        // selectById에 대한 Mock 설정
         when(userPointTable.selectById(userId))
                 .thenAnswer(invocation -> {
 
             return new UserPoint(userId, currentBalance.get(), System.currentTimeMillis());
         });
 
-        // insertOrUpdate에 대한 Mock 설정
         when(userPointTable.insertOrUpdate(eq(userId), anyLong()))
                 .thenAnswer(invocation -> {
             Long newAmount = invocation.getArgument(1);
@@ -60,30 +59,38 @@ public class PointServiceConcurrencyTest {
             return new UserPoint(userId, newAmount, System.currentTimeMillis());
         });
 
-        // ExecutorService 및 CountDownLatch 설정
+        // ThreadPool 을 관리해주는 인터페이스 , 고정된 크기의 스레드풀을 생성하여 동시에 여러 작업이 가능하도록 설정
         ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+        
+        // 다수의 스레드가 모두 작업을 완료할 때까지 기다릴 수 있는 동기화 도구
+        // latch : 스레드들이 작업을 완료한 후 실행을 계속해서 할 수 있도록 제어하는 역할을 해준다.
+        // numberOfThreads 값을 받아 스레드 수 만큼 카운트다운 수행
         CountDownLatch latch = new CountDownLatch(numberOfThreads);
 
-        // 동시에 여러 스레드에서 포인트 충전 요청 실행
         for (int i = 0; i < numberOfThreads; i++) {
             executor.submit(() -> {
                 try {
+                    // 동시성 제어 확인
                     pointService.chargePoint(userId, chargeAmount);
                 } finally {
+                    // 스레드가 작업을 완료하면 latch 의 카운트를 다운시킴.
+                    // 모든 스레드가 작업을 완료하기 전까지  latch.await() 는 대기상태
                     latch.countDown();
                 }
             });
         }
 
+        // 모든 스레드가 완료할 때 까지 대기
+        // latch 가 0 이되면 모든 스레드가 작업을 마쳤다고 간주
         latch.await();
+        // 스레드풀 종료
         executor.shutdown();
 
-        // 최종 포인트 검증
+
         long expectedFinalBalance = initialBalance + (chargeAmount * numberOfThreads);
-        UserPoint finalUserPoint = pointService.chargePoint(userId, 0); // 현재 포인트를 조회
+        UserPoint finalUserPoint = pointService.chargePoint(userId, 0);
         assertEquals(expectedFinalBalance, finalUserPoint.point());
 
-        // 포인트 기록이 정확히 남았는지 확인
         verify(pointHistoryTable, times(numberOfThreads)).insert(eq(userId), eq(chargeAmount), eq(TransactionType.CHARGE), anyLong());
     }
 }

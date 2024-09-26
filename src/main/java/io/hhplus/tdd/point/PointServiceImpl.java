@@ -62,7 +62,7 @@ public class PointServiceImpl implements PointService{
             pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
 
             System.out.println("충전 종료 : 유저 ID = " + userId + ", 충전 후 = " + updateUserPoint.point() + ", 현재 스레드 = " + Thread.currentThread().getName());
-            
+
             return updateUserPoint;
         } finally {
             lock.unlock();
